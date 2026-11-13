@@ -1,6 +1,6 @@
 import unittest
 
-from trading_bot.validation import is_valid_symbol
+from validation import is_valid_symbol
 
 
 class SymbolValidationTests(unittest.TestCase):

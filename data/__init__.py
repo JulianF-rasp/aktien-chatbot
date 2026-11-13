@@ -1,0 +1,1 @@
+"""Marktdaten- und CSV-Hilfsfunktionen."""
