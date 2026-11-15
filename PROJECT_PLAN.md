@@ -101,7 +101,7 @@ Jede Kursreihe benötigt: Symbol/Instrument-ID, Intervall, Börsenzeitstempel mi
 
 ## 4. Repo-Struktur
 
-Der aktuelle Dateibaum ist ausschließlich in [`trading-system-architektur.md`](../trading-system-architektur.md) gepflegt. Geplante Modulordner werden erst angelegt, wenn sie implementierte und getestete Funktionen enthalten. Lokale CSV-Kursdaten gehören nach `data/market/`, werden nicht versioniert und waren beim letzten Repo-Abgleich nicht vorhanden. `.env`, `*.env` (außer `.env.example`), Backtest-Ergebnisse, Validierungsberichte, virtuelle Umgebungen und Betriebssystemdateien bleiben ebenfalls lokal. Den manuellen Alpaca-Test nicht in automatisierte Tests oder CI aufnehmen.
+Die fachliche Zielarchitektur ist in [`trading-system-architektur.md`](trading-system-architektur.md) dokumentiert. Der Trading-Bot liegt unter `trading_bot/`; Hilfsskripte liegen unter `scripts/`, Tests unter `tests/` und lokale CSV-Kursdaten direkt unter `data/`. CSV-Daten werden nicht versioniert. `.env`, `*.env` (außer `.env.example`), Backtest-Ergebnisse, Validierungsberichte, virtuelle Umgebungen und Betriebssystemdateien bleiben ebenfalls lokal. Den manuellen Alpaca-Test nicht in automatisierte Tests oder CI aufnehmen.
 
 ## 5. Geplante Schnittstellen
 
@@ -118,7 +118,7 @@ Die folgenden Datentypen beschreiben das Ziel und sind **noch nicht implementier
 
 **Ergänzungen für Folgesprints:** `BrokerOrder`, `ExecutionFill`, `AccountSnapshot`, `PositionSnapshot`, orderbezogene Idempotenz-ID und explizite Versions-/Zeitfelder. Schnittstellenänderungen müssen mit Tests und Doku konsistent erfolgen.
 
-**Ist-Stand:** `data/csv_loader.py` liest eine CSV-Datei mit pandas als DataFrame ein. Die Funktion validiert derzeit weder Spalten noch Werte und wandelt die Daten nicht in `MarketBar`-Instanzen um. `validation.py` prüft derzeit nur ein normalisiertes Aktiensymbol.
+**Ist-Stand:** `trading_bot/data/csv_loader.py` bietet sowohl generisches CSV-Lesen als auch `load_daily_csv()`, das Zeitstempel und OHLCV-Felder prüft und ein chronologisch sortiertes DataFrame zurückgibt. `scripts/market_data.py` lädt die sechs Alpaca-IEX-Datensätze nach `data/`; `scripts/check_market_data.py` prüft sie auf Lesbarkeit, mindestens 220 Kerzen und Datenalter. `trading_bot/validation.py` prüft ein normalisiertes Aktiensymbol.
 
 ## 6. Funktionale Anforderungen (FR)
 
@@ -232,7 +232,7 @@ Direkte Commits auf `main` sind eine bewusste Teamentscheidung; automatisierte T
 
 **Person A – Data/Quant**
 
-- [ ] **A1** · Alle 6 Tages-CSV-Dateien über `data/csv_loader.py` laden/validieren (AAPL, MSFT, NVDA, AMZN, GOOGL, SPY).
+- [x] **A1** · Alle 6 Tages-CSV-Dateien über `trading_bot/data/csv_loader.py` laden/validieren (AAPL, MSFT, NVDA, AMZN, GOOGL, SPY).
 - [ ] **A2** · V2 über `strategies/v2_bridge.py` und `TradingSignal` ansprechen.
 - [ ] **A3** · V2-Backtest reproduzieren; Kennzahlen, SPY-Vergleich und Datenannahmen dokumentieren.
 - [ ] **A4** · Daten-/Strategietests für Leerdateien, Duplikate, Zeitstempel und zukünftige Daten erweitern.
@@ -254,7 +254,7 @@ Direkte Commits auf `main` sind eine bewusste Teamentscheidung; automatisierte T
 
 ### 11.1 Aufgabenprüfung
 
-Checkboxen dokumentieren den manuellen Projektstatus. Der vorhandene CI-Workflow führt Unit-Tests aus; eine aufgabenbezogene Prüfung, ein `validate_task.py`-Skript und JSON-Berichte existieren derzeit nicht. Aufgaben dürfen erst abgehakt werden, wenn die zugehörigen Funktionen und Tests tatsächlich implementiert und geprüft sind.
+Checkboxen dokumentieren den manuellen Projektstatus. Der CI-Workflow führt Unit-Tests aus. `scripts/validate_task.py` prüft ausgewählte Aufgaben lokal und schreibt einen JSON-Bericht nach `validation_reports/`; die Berichte und manuellen Abnahmeschritte ersetzen keine Checkbox-Abnahme.
 
 ### Sprint 2 – Datenpipeline, Backtest-Härtung und Risikopolitik
 
@@ -316,13 +316,16 @@ Checkboxen dokumentieren den manuellen Projektstatus. Der vorhandene CI-Workflow
 - Python 3.10 oder neuer.
 - Benötigte Bibliotheken mit `python -m pip install -r requirements.txt` installieren.
 - Zugangsdaten bei Bedarf lokal in `.env` ablegen; keine echten Schlüssel in `.env.example` eintragen.
-- CSV-Dateien können lokal unter `data/market/` abgelegt werden. Im geprüften Arbeitsbaum waren keine CSV-Dateien vorhanden.
+- CSV-Dateien liegen lokal direkt unter `data/` und werden nicht versioniert.
 
 ### 12.2 Befehle
 
 ```bash
 python -m pip install -r requirements.txt
 python -m unittest discover -s tests -v
+python -m scripts.market_data
+python -m scripts.check_market_data
+python -m scripts.validate_task --task A1
 streamlit run app.py
 ```
 
@@ -330,7 +333,7 @@ streamlit run app.py
 
 ### 12.3 Unmittelbarer nächster gemeinsamer Meilenstein
 
-Zunächst CSV-Schema und Validierungsregeln festlegen. Danach Loader-Tests für gültige und fehlerhafte Dateien hinzufügen; echte CSV-Datensätze bleiben lokal und werden nicht committed.
+CSV-Schema, Loader-Tests und A1-Prüfung sind implementiert. Als nächster fachlicher Schritt folgt A2; echte CSV-Datensätze bleiben lokal und werden nicht committed.
 
 ## 13. Geprüfter Implementierungsstand (13. November 2026)
 
@@ -338,9 +341,9 @@ Zunächst CSV-Schema und Validierungsregeln festlegen. Danach Loader-Tests für 
 |---|---|---|
 | Streamlit-Chatbot | `app.py` mit Yahoo-Finance-Daten und OpenAI-Analyse | Laufzeit-/API-Verhalten nicht in dieser Repo-Prüfung validiert |
 | Alpaca | Manueller Paper-Kauf-Test in `test_alpaca.py` | Kein isolierter Read-only-Adapter; nicht automatisiert ausführen |
-| CSV-Daten | Ein einfacher CSV-Loader | Keine CSV-Datensätze vorhanden; Datenqualität/Schema-Validierung fehlt |
-| Trading-Bot-Code | Symbolprüfung und `data/csv_loader.py` | Modelle, Strategie, Risiko, Backtest und Runner fehlen |
-| Tests/CI | Symboltests und `.github/workflows/tests.yml` | Daten- und weitere Funktionstests ergänzen |
+| CSV-Daten | Alpaca-IEX-Downloader, OHLCV-Loader und CSV-Prüfer; sechs lokale Datensätze | Feed-Abdeckung und historische Bereinigungen fachlich prüfen |
+| Trading-Bot-Code | Symbolprüfung und `trading_bot/data/csv_loader.py` | Modelle, Strategie, Risiko, Backtest und Runner fehlen |
+| Tests/CI | Symbol-, CSV- und Prüfer-Tests sowie `.github/workflows/tests.yml` | Tests für weitere Funktionen ergänzen |
 | Secrets | `.env.example`; lokale `*.env` werden ignoriert | Keine Secrets in Git oder CI hinterlegen |
 | Live-Trading | Nicht Teil des bestehenden Codes dieses Pakets | Nicht implementieren; MVP bleibt Paper-only |
 
@@ -362,11 +365,11 @@ Eine Aufgabe gilt erst als abgeschlossen, wenn **(a)** die spezifizierte Funktio
 
 ## 16. Dokumentationspflege
 
-- `trading-system-architektur.md` ist die zentrale Übersicht für Struktur und Modulverantwortlichkeiten.
-- `docs/PROJECT_PLAN.md` enthält Anforderungen, Status und Sprintplanung.
+- `trading-system-architektur.md` beschreibt die fachliche Zielarchitektur und Modulverantwortlichkeiten.
+- `PROJECT_PLAN.md` enthält Anforderungen, Status und Sprintplanung.
 - `README.md` enthält Einstieg, Installation, Start und Testbefehle und verlinkt auf beide Dokumente.
 - Entschiedene Architekturänderungen: Änderungstabelle unten ergänzen.
-- Aufgaben werden in diesem Markdown per Checkbox nachgehalten. Derzeit existiert nur ein CI-Workflow für die Unit-Tests; ein separater Aufgabenprüf-Workflow und `scripts/validate_task.py` sind nicht vorhanden.
+- Aufgaben werden in diesem Markdown per Checkbox nachgehalten. `scripts/validate_task.py` bietet eine lokale Aufgabenprüfung; ihre Berichte werden nicht versioniert.
 - Bei Widerspruch zwischen Plan und ausführbarem Code **nicht** stillschweigend annehmen, dass der Plan bereits implementiert ist. Den Unterschied als offene Aufgabe erfassen.
 
 ### Änderungsprotokoll
@@ -378,4 +381,4 @@ Eine Aufgabe gilt erst als abgeschlossen, wenn **(a)** die spezifizierte Funktio
 
 ---
 
-**Nächste praktische Aktion:** CSV-Schema und Datenqualitätsregeln festlegen, anschließend den Loader samt Offline-Tests erweitern. Bis echte Datensätze geprüft wurden, keine Aussage über Datenvollständigkeit oder Backtest-Ergebnisse treffen.
+**Nächste praktische Aktion:** Sprint-1-Aufgabe A2 angehen. Der CSV-Loader und die sechs lokalen Datensätze sind automatisiert prüfbar; Datenvollständigkeit und Backtest-Güte müssen weiterhin anhand der dokumentierten Feed- und Adjustierungsannahmen bewertet werden.
