@@ -1,14 +1,12 @@
 # Aktien-Chatbot – Master-Projektplan & technische Anforderungen
 
-**Dokumentversion:** 1.1
-**Stand:** 13. November 2026
-**Status:** Verbindliche gemeinsame Planungsgrundlage mit Aufgaben-Checklisten und reproduzierbarer Validierung
-**Repository:** privates GitHub-Repository `aktien-chatbot`
+**Dokumentversion:** 1.2  
+**Stand:** 17. November 2026  
+**Status:** Verbindliche gemeinsame Planungsgrundlage mit Aufgaben-Checklisten, reproduzierbarer Validierung und wirtschaftlichen Freigabekriterien  
+**Repository:** privates GitHub-Repository `aktien-chatbot`  
 **Team:** 2 Entwickler (Person A = Data/Quant, Person B = Risk/Execution/Platform)
 
 > **Zweck:** Dieses Dokument hält Ziel, Anforderungen, Architektur, Schnittstellen, Sicherheitsvorgaben, Aufgabenverteilung, Sprintplanung, Entscheidungen und Abnahmekriterien an einer zentralen Stelle fest. Es dient als gemeinsames Nachschlagewerk. Der tatsächliche Implementierungsstand wird über Git-Commits und Tests nachgewiesen – geplante Bausteine gelten nicht automatisch als implementiert.
->
-> **Repo-Abgleich vom 13. November 2026:** Die Struktur und Statusangaben unten wurden mit dem vorhandenen Arbeitsbaum abgeglichen. Der Plan ist eine Zielbeschreibung, keine Behauptung, dass alle geplanten Komponenten bereits existieren.
 
 ## 1. Projektziel und Produktumfang
 
@@ -99,13 +97,96 @@ Geplante logische Entitäten: `instruments`, `market_bars`, `strategy_versions`,
 
 Jede Kursreihe benötigt: Symbol/Instrument-ID, Intervall, Börsenzeitstempel mit Zeitzone, Datenquelle/Feed, OHLCV, Vollständigkeitskennzeichen, ggf. Adjustment-Status. Signale enthalten Bar-Zeitpunkt und Strategieversion. Orders erhalten eindeutige Client-IDs und unveränderliche Statusereignisse.
 
-## 4. Repo-Struktur
+## 4. Repo-Struktur: vorhanden vs. Ziel
 
-Die fachliche Zielarchitektur ist in [`trading-system-architektur.md`](trading-system-architektur.md) dokumentiert. Der Trading-Bot liegt unter `trading_bot/`; Hilfsskripte liegen unter `scripts/`, Tests unter `tests/` und lokale CSV-Kursdaten direkt unter `data/`. CSV-Daten werden nicht versioniert. `.env`, `*.env` (außer `.env.example`), Backtest-Ergebnisse, Validierungsberichte, virtuelle Umgebungen und Betriebssystemdateien bleiben ebenfalls lokal. Den manuellen Alpaca-Test nicht in automatisierte Tests oder CI aufnehmen.
+### 4.1 Bestehender lokaler Stand (bekannt aus Projektverlauf; tatsächliche Installation prüfen)
 
-## 5. Geplante Schnittstellen
+```text
+aktien-chatbot/
+├── app.py
+├── market_data.py
+├── strategy.py
+├── strategy_v2.py
+├── backtest.py
+├── backtest_v2.py
+├── trade_strategy.py
+├── audit_v2.py                 # falls bereits übernommen
+├── test_alpaca.py              # früherer manueller Paper-Ordertest; nicht automatisieren!
+├── .env                        # lokal, niemals committen
+├── .gitignore
+├── data/                       # lokale Kursdaten
+└── backtest_results/           # lokale Ergebnisdateien
+```
 
-Die folgenden Datentypen beschreiben das Ziel und sind **noch nicht implementiert**:
+### 4.2 Zielstruktur (Sprint-1-Paket soweit beschrieben / später zu ergänzen)
+
+```text
+aktien-chatbot/
+├── README.md
+├── PROJECT_PLAN.md                 # dieses Dokument
+├── app.py                          # bestehendes Streamlit-Dashboard
+├── market_data.py                  # bestehender Downloader, vorerst erhalten
+├── strategy_v2.py                  # bisherige Baseline, vorerst erhalten
+├── backtest_v2.py                  # bisherige Baseline, vorerst erhalten
+├── .env                            # NUR lokal
+├── .env.example
+├── .gitignore
+├── pyproject.toml
+├── requirements.txt
+├── .github/workflows/tests.yml
+├── .github/workflows/validate-task.yml  # manuell startbare Prüfungen
+├── docs/
+│   ├── START_HIER.md
+│   ├── INTERFACES.md
+│   └── decisions/                 # später weitere Architekturentscheidungen
+├── trading_bot/
+│   ├── __init__.py
+│   ├── config.py
+│   ├── models.py
+│   ├── dry_run.py
+│   ├── data/
+│   │   ├── __init__.py
+│   │   ├── csv_loader.py
+│   │   └── alpaca_market_data.py  # später
+│   ├── features/
+│   │   └── indicators.py         # später
+│   ├── strategies/
+│   │   ├── __init__.py
+│   │   └── v2_bridge.py
+│   ├── backtesting/
+│   │   ├── engine.py             # später
+│   │   └── reports.py            # später
+│   ├── risk/
+│   │   ├── __init__.py
+│   │   └── guard.py
+│   ├── execution/
+│   │   ├── __init__.py
+│   │   ├── interfaces.py
+│   │   ├── alpaca_readonly.py
+│   │   ├── alpaca_paper.py       # erst Folgesprint, nur Paper
+│   │   └── reconciliation.py     # erst Folgesprint
+│   ├── storage/                  # erst nach Definition des Datenmodells
+│   ├── monitoring/               # später
+│   └── runner.py                 # später, unabhängig von Streamlit
+├── scripts/
+│   └── validate_task.py          # Task-bezogene Prüfungen ohne Orderversand
+├── validation_reports/           # generiert, nicht committen
+├── tests/
+│   ├── test_contracts.py
+│   ├── test_data.py
+│   ├── test_risk.py
+│   └── test_v2_bridge.py
+├── data/                         # lokal / ignoriert
+├── backtest_results/             # lokal / ignoriert
+├── validation_reports/           # generiert / ignoriert
+└── legacy/                       # erst nach erfolgreicher Migration
+```
+
+**Nicht vorschnell verschieben:** Alte Dateien erst nach erfolgreichem Migrations-/Regressionstest nach `legacy/` verschieben. Vorhandene Konfigurationsdateien beim Entpacken eines Startpakets zusammenführen statt blind überschreiben.
+
+## 5. Einheitliche Schnittstellen (verbindlicher Vertrag)
+
+Sprint 1 stellt unter `trading_bot/models.py` diese unveränderlichen Python-Datentypen bereit:
 
 | Typ | Aktueller Vertrag | Bedeutung |
 |---|---|---|
@@ -118,7 +199,7 @@ Die folgenden Datentypen beschreiben das Ziel und sind **noch nicht implementier
 
 **Ergänzungen für Folgesprints:** `BrokerOrder`, `ExecutionFill`, `AccountSnapshot`, `PositionSnapshot`, orderbezogene Idempotenz-ID und explizite Versions-/Zeitfelder. Schnittstellenänderungen müssen mit Tests und Doku konsistent erfolgen.
 
-**Ist-Stand:** `trading_bot/data/csv_loader.py` bietet sowohl generisches CSV-Lesen als auch `load_daily_csv()`, das Zeitstempel und OHLCV-Felder prüft und ein chronologisch sortiertes DataFrame zurückgibt. `scripts/market_data.py` lädt die sechs Alpaca-IEX-Datensätze nach `data/`; `scripts/check_market_data.py` prüft sie auf Lesbarkeit, mindestens 220 Kerzen und Datenalter. `trading_bot/validation.py` prüft ein normalisiertes Aktiensymbol.
+**Hinweis zum aktuellen Startpaket:** `csv_loader.py` liefert derzeit ein validiertes pandas DataFrame, keine Liste von `MarketBar`-Instanzen. Die Angleichung erfolgt in einem späteren Arbeitspaket.
 
 ## 6. Funktionale Anforderungen (FR)
 
@@ -155,21 +236,23 @@ Die folgenden Datentypen beschreiben das Ziel und sind **noch nicht implementier
 - **NFR-11 Zugriff:** Beide Entwickler mit eigenen GitHub-Konten; auf gemeinsamem Hosting getrennte Nutzerkonten und zentrale Secret-Verwaltung.
 - **NFR-12 Kostenkontrolle:** API-Budget und Anbieterlimits überwachen; kostenlose Dienste können Daten-/Nutzungseinschränkungen haben.
 
-### 7.1 Vorgeschlagene Paper-Risikolimits (konfigurierbare Startwerte, keine Garantien)
+### 7.1 Verbindlicher Paper-Risikorahmen für 25.000 € Planungsstartkapital (noch nicht vollständig implementiert)
 
 | Regel | Vorschlag |
 |---|---|
-| Geplantes Risiko je Trade | 0,25 % des Kontowerts |
-| Geplantes Gesamtrisiko offener Positionen | max. 1,0 % |
-| Maximaler Anteil je Position | 20 % |
+| Geplantes Risiko je Trade | **0,25 %** des aktuellen Equity-Werts (bei 25.000 €: 62,50 €) |
+| Geplantes Gesamtrisiko offener Positionen | **max. 1,0 %** (bei 25.000 €: 250 €; als Summe der geplanten Stop-Verluste) |
+| Maximaler Anteil je Position | **20 %** (bei 25.000 €: 5.000 €), keine Hebelwirkung |
 | Maximal gleichzeitig offene Positionen | 3 |
-| Tagesverlustgrenze | 1,0 % |
-| Wochenverlustgrenze | 2,5 % |
+| Tagesverlustgrenze | **1,0 %** vom Equity-Referenzwert des Tages; keine neuen Positionen nach Überschreitung |
+| Wochenverlustgrenze | **2,5 %** vom Equity-Referenzwert der Woche; keine neuen Positionen nach Überschreitung |
 | Veraltete Daten, offener ungeklärter Orderstatus, Kill Switch | Keine neuen Käufe |
-| Stop-Plan | Vor jeder Freigabe erforderlich |
+| Stop-Plan | Vor jeder Freigabe erforderlich; Gebühren im geplanten Risiko einrechnen |
+| Maximaler Gesamt-Kapitaleinsatz | **60 %** (3 Positionen × maximal 20 %), Rest kann Cash bleiben |
+| Drawdown-Ampel (vom Equity-Höchststand) | **−10 % Warnung**, **−12 % neue Einstiege sperren**, **−15 % Paper-Strategie stoppen und untersuchen** |
 | Echtgeld | Gesperrt |
 
-Ein Stop garantiert keinen maximalen Verlust; Kurslücken und Ausführungen können schlechter als geplant sein. Diese Limits sind **noch nicht sämtlich in Sprint 1 umgesetzt**.
+Ein Stop garantiert keinen maximalen Verlust; Kurslücken und Ausführungen können schlechter als geplant sein. **Bei US-Dollar-Handel alle EUR-Beispiele zum jeweiligen EUR/USD-Kurs in Kontowährung umrechnen; Risikoberechnung muss auf tatsächlicher Account-Equity erfolgen.** Diese Limits sind **noch nicht sämtlich in Sprint 1 umgesetzt**. Bestehende V2-Backtests verwenden historisch 0,5 % pro Trade; die neuen 0,25 % sind eine **künftige Paper-Risikopolitik**, keine rückwirkende Beschreibung der Backtest-Engine.
 
 ## 8. Broker-/Datenquellenstrategie
 
@@ -196,9 +279,80 @@ IBKR, alternative lizenzierte Marktdaten und weitere Broker nur aufnehmen, wenn 
 - Report: Rendite, maximale Drawdown, Trefferquote, Profit Factor, Expectancy, Holding Days, Exposure, Kosten, Einzeltitelbeiträge, offene Positionen.
 - Nicht nur profitable Tests zählen: schwache Phasen und fehlgeschlagene Versuche dokumentieren.
 
+### 9.1 Wirtschaftliches Zielbild und Erfolgsmaßstab (Beschluss vom 17.11.2026)
+
+**Planungskapital:** **25.000 €**. **Zielrendite:** **10–15 % p. a.** als *langfristige, annualisierte Zielspanne*, nicht als garantierte Rendite, nicht als Prognose und ausdrücklich nicht als Pflichtwert jedes einzelnen Kalenderjahrs.
+
+| Kennzahl | Verbindliche Projektregel | Bei 25.000 € (nur Rechenbeispiel) |
+|---|---|---:|
+| Strategisches Ziel | **10–15 % CAGR** nach Handelskosten und laufenden zurechenbaren Betriebskosten, **vor persönlichen Steuern** | **2.500–3.750 €/Jahr** bei konstantem Anfangskapital |
+| Wirtschaftliche Mindesthürde | **8 % CAGR** unter gleichen Kostenannahmen **und** positives risikobereinigtes Mehrwerturteil gegenüber Alternativen; darunter Strategie **nicht als wirtschaftlich freigabereif** deklarieren | **2.000 €/Jahr** |
+| Ambitionierter Zielpunkt | **12 % CAGR** als Modellierungs-/Planungswert; keine Nachweispflicht aus einer einzelnen Backtest-Periode | **3.000 €/Jahr** |
+| Laufende Kosten | Gebühren, Spread, Slippage, Daten, Hosting und betriebsbezogene Software separat belegen; **keine stillschweigend angenommenen Nullkosten** | Beispiel: 300–600 €/Jahr *nur als Szenario, nicht als ermittelter Preis* |
+| Benchmark | **SPY Total Return** auf demselben Zeitraum und gleicher Währungsbasis; zusätzlich Cash-/Geldmarkt-Alternative und Risiko-/Exposure-Unterschied darstellen | Kein festes Alpha versprechen |
+| Verbotene Abkürzung | Erhoffte Rendite **nicht** durch höheres Hebelrisiko oder Lockerung der Drawdown-Grenzen erzwingen | — |
+
+**Rechenregel:** Handelsrendite und Betriebsrendite strikt unterscheiden. `CAGR_gross` berücksichtigt die modellierten Handelskosten; `CAGR_economic` berücksichtigt zusätzlich zurechenbare laufende Betriebskosten und ggf. Wechselkosten. Steuern werden **separat** als individuelle Nach-Steuer-Szenarien berichtet. 25.000 € Planungskapital sind nicht identisch mit den historischen **50.000 USD** der bisherigen V2-Tests. Backtests deshalb in tatsächlicher Kontowährung mit dokumentierter EUR/USD-Umrechnung oder als klar bezeichnetes USD-Szenario neu durchführen. Ein USD-Ergebnis darf nicht ohne Währungsbetrachtung als EUR-Rendite ausgegeben werden.
+
+**Wirtschaftliches Beispiel (keine Prognose):** 10 % auf 25.000 € entspricht 2.500 € vor persönlicher Steuer, **wenn** diese 10 % schon alle vorgesehenen laufenden Kosten enthalten. Bei 3.000 € Handelsgewinn und 500 € realen Fixkosten wären es 2.500 € wirtschaftlicher Gewinn (= 10 %). Für die Entscheidung ist auch der Entwicklungs-/Wartungsaufwand beider Personen relevant; dieser wird in Stunden erfasst und optional mit einem Opportunitätskostensatz bewertet, **nicht** als bereits bezahlter Aufwand erfunden.
+
+### 9.2 Kapital- und Risikoanforderungen (Gates, nicht Performanceversprechen)
+
+- **Start:** 25.000 € Planungsgröße; im MVP ausschließlich Paper. Kontowährung und FX-Umrechnung in jedem Bericht angeben.
+- **Trade-Risiko:** zunächst 0,25 % der aktuellen Account-Equity, geplante Stop-Entfernung **inklusive Ausführungskosten**; keine Order ohne gültigen positiven Stop-Preis.
+- **Gleichzeitige Risiken:** Summe geplanter Stop-Verluste aller Positionen plus neuer Position ≤ 1,0 % Equity; höchstens 3 Positionen; max. 20 % Equity je Einstieg und 60 % gesamtes Brutto-Exposure; keine Hebelprodukte oder Short-Positionen.
+- **Verlustgrenzen:** 1,0 % intraday / 2,5 % pro Woche sperren **neue** Positionseröffnungen; bestehende Sicherheits-Exits bleiben zulässig. Bei 10 % Drawdown Warnung, bei 12 % keine neuen Einstiege, bei 15 % Strategie stoppen, Ursachen untersuchen und dokumentierte manuelle Wiederfreigabe verlangen. Drawdown relativ zum jeweiligen bisherigen Equity-Hoch und auf Basis einer fest definierten täglichen Portfolio-Bewertung bestimmen.
+- **Fail closed:** fehlende/veraltete Daten, fehlende ATR, NaN/Inf, unbekannter Orderstatus, Broker-Reconciliation-Fehler und Kill Switch → keine neuen Orders. Gap-Verluste dürfen trotz Stop-Plan über dem Budget liegen; nicht als unmöglich darstellen.
+- **Limits getrennt testen:** Die V2-Baseline mit 0,5 % historischer Trade-Risikoeinstellung und die neue 0,25-%-Paper-Regel sind zwei **getrennte, versionierte Szenarien**. Nicht unbemerkt vermischen.
+
+### 9.3 Messbare Abnahmekriterien und Stufenfreigabe
+
+Die Zielrendite ist eine **wirtschaftliche Zielsetzung**, kein automatisch beweisbarer Schwellenwert aus einer kurzen Stichprobe. Jede Stufe braucht einen dokumentierten Entscheid mit den Ergebnissen `PASS`, `REVIEW` oder `FAIL`.
+
+| Gate | Erforderlicher Nachweis | Entscheidungsregel |
+|---|---|---|
+| **G0 – Backtest-Integrität (A3)** | Datenlücken-/Split-/Dividendenprüfung, reproduzierbare Daten- und Parameterstände; Signale t → Ausführung frühestens t+1; Gebühren-/Gap-/Stop-/Equity-Tests; SPY-Benchmark; bestehende Engine-Findings behoben | **PASS** erst bei reproduzierbarem Testlauf ohne kritischen Berechnungsfehler; sonst `REVIEW/FAIL` |
+| **G1 – Strategie-Forschungsfreigabe** | Zeitlich getrennte Train-/Validation-/Test-Perioden, Walk-forward, unterschiedliche Marktphasen, mindestens zwei Kosten-Szenarien, Einzeltitel-/Einzeltrade-Konzentration, vollständiger Risiko-/Exposure-Bericht | Nur `PASS`, wenn keine Datenleckage und keine gravierende Einzelergebnis-Abhängigkeit ungeprüft bleibt; Zielkorridor und 8-%-Hürde **ausweisen**, nicht aus In-Sample-Erfolg ableiten |
+| **G2 – Paper-Betrieb** | Vollständige RiskGuard-/Idempotenz-/Reconciliation-Tests, Broker nur `paper=True`, Kill-Switch-Test, Kosten-Logging, täglicher Equity-Report | Kritische Sicherheits- oder Orderfehler = `FAIL`; kein Paper-Orderbetrieb ohne G0 und technische Guard-Freigabe |
+| **G3 – Beobachtete Paper-Evaluation** | Mindestens **3 Monate** stabiler Paper-Betrieb als *technisches* Mindestfenster, mit Trade-Logs, Slippage-/Kostenvergleich und dokumentierten Störungen; bei wenigen Trades **verlängern** | Mindestens 3 Monate alleine reichen **nicht**, um 10–15 % p. a. statistisch nachzuweisen; keine positive Freigabe bei Risiko-Verletzungen |
+| **G4 – Wirtschaftliches Go/No-Go** | Annualisierte Netto-Kostenrendite aus angemessener OOS-Historie + Unsicherheit; max. Drawdown, Profit Factor, Konzentration, SPY/Cash-Vergleich, tatsächliche laufende Kosten und Aufwand | **GO nur zur nächsten *Paper-/Forschungsstufe***, wenn plausibel ≥ 8 % wirtschaftliche CAGR, Ziel 10–15 % als realistische Hypothese und vereinbarte Risikogrenzen; andernfalls überarbeiten / einstellen. **Keine Echtgeldfreigabe im MVP.** |
+
+**Zusätzliche Diagnosegrößen (keine Erfolgs-Garantien):** Profit Factor ≥ 1,3 als *Forschungsziel* über ausreichend viele OOS-Trades; max. historischer Drawdown idealerweise ≤ 12 %, Stressgrenze 15 %; positive Netto-Expectancy nach Kosten; Stabilität über Teilperioden und bei höheren Slippage-Annahmen. Geringe Stichproben, wenige Trades oder ein dominierender Gewinner führen zu `REVIEW`, nicht zu automatischem `PASS`. SPY ist eine Vergleichsanlage mit anderem Risiko/Exposure; eine niedrigere absolute Rendite bei deutlich geringerem Risiko kann sinnvoll sein und muss entsprechend begründet werden.
+
+**Referenzstand vom 17.11.2026 (nicht als wirtschaftlicher Nachweis freigegeben):** Rekonstruierte V2 mit 50.000 USD historischem Startkapital, ca. **+2,737 % gesamt** in rund drei Jahren (≈ **0,90 % p. a.**), Drawdown **−4,888 %**, 31 geschlossenen Trades, 1 offener Position, Trefferquote **29,03 %**, Profit Factor **1,372**. 23 Pytest-Tests und 9 Subtests wurden lokal als bestanden gemeldet. Ergebnis stark von einem GOOGL-Gewinntrade abhängig. **G0 noch offen**, weil die Engine-Risiko-/Datengrenzfälle und der Benchmark noch nicht vollständig geprüft sind; **G4 wirtschaftlich nicht bestanden**. Die Zahlen der älteren V2 (+0,35 % bei 50.000 USD) sind eine *andere* Implementierung/ein anderer Datenstand, nicht derselbe Test.
+
+### 9.4 Konkrete zusätzliche Aufgaben – zwei Personen, keine Überlappungen
+
+**Person A – Quant / Forschung**
+
+- [ ] **ECO-A1** · 25.000-€-Szenario und 50.000-USD-Baseline getrennt und reproduzierbar backtesten; Kosten-/FX-Annahmen offenlegen. **Prüfung:** identischer Datenstand + gleiche Version → gleiche Equity-/Trade-Hashes oder reproduzierbare Kennzahlen.
+- [ ] **ECO-A2** · Backtest-Härtung: Risiko inklusive Kosten, positiver Stop, OHLCV-/Datumsvalidierung, Fehlertage, Gap-Szenarien, Look-ahead-Regressionstests. **Prüfung:** neue gezielte Pytest-Grenzfalltests + gesamter Testsatz grün.
+- [ ] **ECO-A3** · SPY-Total-Return- und Cash-Benchmark im selben Währungs-/Datumsraum; Exposure- und Risiko-Unterschiede berichten. **Prüfung:** Benchmark-Zeilen nachvollziehbar und Datenbehandlung dokumentiert.
+- [ ] **ECO-A4** · OOS-/Walk-forward-Test, höhere Kosten, Einzeltrade-Ausschluss, Konzentration nach Symbol und Zeitabschnitt. **Prüfung:** automatisierter Report mit `PASS/REVIEW/FAIL` und eindeutigem Gate-Urteil.
+
+**Person B – Risk / Platform / Betrieb**
+
+- [ ] **ECO-B1** · 25.000-€-/USD-Konfigurationsmodell, FX-/Equity-Konvertierung, Kostenbuchhaltung und Risikolimits implementieren. **Prüfung:** Einheitentests der Prozent- und Betragsgrenzen sowie Fremdwährungstests.
+- [ ] **ECO-B2** · RiskGuard für 0,25 %/Trade, 1 % offene Risiken, drei Positionen, 20 %/Position, 60 % Exposure, Tages-/Wochenverlustgrenzen und Drawdown-Sperre. **Prüfung:** negative und positive Entscheidungsfälle, Fail-Closed und keine Order bei Überschreitung.
+- [ ] **ECO-B3** · Tägliches Reporting von Equity, Drawdown, Fix-/Tradingkosten, Positionen, Orders, Datenalter, Alerts und Kill Switch. **Prüfung:** deterministische Testdaten und simulierte Störfälle.
+- [ ] **ECO-B4** · Paper-Betrieb und Monitoring mit eindeutiger Order-ID, Reconciliation, Kostenerfassung und dokumentierter Störungsbehandlung. **Prüfung:** Offline-/Paper-Integrationsnachweise ohne Echtgeldorder.
+
+**Gemeinsame wirtschaftliche Entscheidung**
+
+- [ ] **ECO-G1** · Nach G0/G1 erstmals gemeinsame schriftliche Wirtschaftlichkeitsentscheidung dokumentieren: Ziel 10–15 %, Hürde 8 %, 25.000 €, Kostenbudget, erlaubter Drawdown, Aussagekraft der Daten, Entscheidung `GO / REVIEW / NO-GO`.
+- [ ] **ECO-G2** · Nach G3/G4 Kosten-/Ergebnisannahmen anhand realer Paper-Daten neu bewerten. Bei Unterperformance keine Hebelerhöhung als Ersatz für Strategievorteil.
+
+**Prüf-Links:** Diese ECO-IDs sind **noch nicht** in `scripts/validate_task.py` oder GitHub Actions implementiert; daher **keine funktionsfähige automatische ECO-Einzelprüfung behaupten**. Die hier genannten Tests/Reports werden in Sprint 2 ergänzt und erst dann mit separaten `--task ECO-...`-Kommandos und Workflow-Einträgen verknüpft. Markdown-Checkboxen sind bis dahin manuell zu setzen.
+
+### 9.5 Verbindliche Dokumentation jeder Strategieentscheidung
+
+Für jeden Strategiekandidaten eine versionierte Ergebnisakte führen (`docs/economics/<strategie>_<version>.md` oder `.json`) mit: Symboluniversum; Markt-/Feedtyp; Zeitraum; Anzahl Trades; Cash/Exposure; Kontowährung und EUR/USD; CAGR vor/nach Handelskosten und nach laufenden Kosten; Steuerszenario separat; Drawdown; Profit Factor; größte Gewinn-/Verlusttrades; Benchmarkvergleich; OOS-/Walk-forward-Methodik; Parameter-Suchhistorie; Software-/Daten-/Hostingkosten; Entwicklung-/Wartungsstunden; Tests/Gate-Status; Git-Commit; Datum und gemeinsame Entscheidung.
+
+---
+
 ## 10. Aufgabenverteilung für genau zwei Personen
 
-**Person A – Data/Quant:** Marktdaten, Zeitreihen, Indikatoren, Strategien, Backtests, Benchmarks, Daten-/Strategietests.
+**Person A – Data/Quant:** Marktdaten, Zeitreihen, Indikatoren, Strategien, Backtests, Benchmarks, Daten-/Strategietests.  
 **Person B – Risk/Execution/Platform:** Risikoprüfung, Konfiguration, Brokerabstraktion, Konten-/Orderstatus, später Orderausführung, Persistenz/Betrieb und technische Sicherheit.
 
 Beide schreiben Code und Tests. **Kein Pflicht-Code-Review, keine Pull Requests**. Gemeinsame Schnittstellen (`models.py`, `interfaces.py`, Abhängigkeiten) immer vor parallelen Änderungen kurz absprechen. Bei Kapazitätsunterschieden einzelne begrenzte Aufgaben zwischen A und B umverteilen.
@@ -220,55 +374,101 @@ Direkte Commits auf `main` sind eine bewusste Teamentscheidung; automatisierte T
 
 | Person A | Person B | Nur nach Abstimmung |
 |---|---|---|
-| `data/*`, `analysis/*`, `signals/*` | `risk/*`, `execution/*`, `monitoring/*` | `core/models.py`, `core/config.py` |
-| `backtesting/*` | `core/storage.py` | `requirements.txt`, `pyproject.toml`, `app.py`, `runner.py`, gemeinsame CI |
+| `trading_bot/data/*` | `trading_bot/risk/*` | `trading_bot/models.py` |
+| `trading_bot/strategies/*` | `trading_bot/execution/*` | `trading_bot/config.py` |
+| `trading_bot/features/*` | `trading_bot/monitoring/*` | `requirements.txt`, `pyproject.toml` |
+| `trading_bot/backtesting/*` | `trading_bot/storage/*` | `app.py`, `runner.py`, gemeinsame CI |
 | Daten-/Strategietests | Risiko-/Executiontests | Schnittstellen-/Integrationstests |
 
 ## 11. Sprints und konkrete Arbeitspakete
 
-### Sprint 1 – V2 konsolidieren, Interfaces, Risiko/Broker trennen **(aktuell)**
+### Sprint 1 – V2 konsolidieren, Interfaces, Risiko/Broker trennen **(A1/A2 technisch geprüft; A3 offen)**
 
-**Gemeinsam – Start:** Implementierten Repo-Stand sichern, `.env` schützen, Installation und vorhandene CI prüfen.
+**Gemeinsam – Start:** Stand von `main` sichern (Tag `sprint1-baseline`, falls noch nicht vorhanden), Startpaket integrieren, `.env` schützen, Installation/CI prüfen.
 
 **Person A – Data/Quant**
 
-- [x] **A1** · Alle 6 Tages-CSV-Dateien über `trading_bot/data/csv_loader.py` laden/validieren (AAPL, MSFT, NVDA, AMZN, GOOGL, SPY).
-- [ ] **A2** · V2 über `strategies/v2_bridge.py` und `TradingSignal` ansprechen.
-- [ ] **A3** · V2-Backtest reproduzieren; Kennzahlen, SPY-Vergleich und Datenannahmen dokumentieren.
-- [ ] **A4** · Daten-/Strategietests für Leerdateien, Duplikate, Zeitstempel und zukünftige Daten erweitern.
+> Zum Prüfen: [▶ GitHub Actions: Aufgabe prüfen](../../actions/workflows/validate-task.yml) → **Run workflow** → `task` auswählen. Alternativ die unten stehenden lokalen Befehle ausführen.
+
+- [x] **A1** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · Alle 6 Tages-CSV-Dateien über `trading_bot/data/csv_loader.py` laden/validieren (AAPL, MSFT, NVDA, AMZN, GOOGL, SPY).
+- [x] **A2** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · V2 über `trading_bot/strategies/v2_bridge.py` und `TradingSignal` ansprechen.
+- [ ] **A3** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · V2-Backtest reproduzieren; Kennzahlen, SPY-Vergleich und Datenannahmen dokumentieren.
+- [ ] **A4** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · Daten-/Strategietests für Leerdateien, Duplikate, Zeitstempel und zukünftige Daten erweitern.
 
 **Person B – Risk/Execution/Platform**
 
-- [ ] **B1** · `risk/guard.py` gegen Grenzfälle und Fail-Closed-Szenarien testen.
-- [ ] **B2** · `execution/alpaca_readonly.py` mit lokalen **Paper**-Keys nur lesend prüfen.
-- [ ] **B3** · Positionen, Kaufkraft, offene Orders und Handelseinschränkungen korrekt erfassen.
-- [ ] **B4** · `.env.example`, `.gitignore`, CI/pytest, dokumentierte Einstellungen und Fehlerfälle absichern.
+> Der Workflow kann ohne Broker-Secrets nur Offline-Prüfungen ausführen. Für B2/B3 ist ein zusätzliches lokales `--online` erforderlich.
+
+- [ ] **B1** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · `trading_bot/risk/guard.py` gegen Grenzfälle und Fail-Closed-Szenarien testen.
+- [ ] **B2** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · `trading_bot/execution/alpaca_readonly.py` mit lokalen **Paper**-Keys nur lesend prüfen.
+- [ ] **B3** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · Positionen, Kaufkraft, offene Orders und Handelseinschränkungen korrekt erfassen.
+- [ ] **B4** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · `.env.example`, `.gitignore`, CI/pytest, dokumentierte Einstellungen und Fehlerfälle absichern.
 
 **Gemeinsam – Abnahme**
 
-- [ ] Chatbot, CSV-Import, Datenqualität und Tests sind nachvollziehbar und offline prüfbar.
-- [ ] `python -m unittest discover -s tests -v` ist erfolgreich.
-- [ ] Ein zukünftiger Dry-Run zeigt Signale/Orderpläne, ohne Broker-Orders zu senden.
-- [ ] Ein zukünftiger Broker-Leseadapter ist isoliert und ausdrücklich auf Paper beschränkt.
+- [ ] Bestehende `app.py`, `strategy_v2.py`, `backtest_v2.py` bleiben unverändert nutzbar.
+- [ ] `\.venv\Scripts\python.exe -m pytest -q` ist erfolgreich (Startpaket hatte **18 Offline-Tests** bei Erstellung; lokal erneut ausführen).
+- [ ] `\.venv\Scripts\python.exe -m trading_bot.dry_run` zeigt Signale und Orderpläne, **keine** Broker-Orders.
+- [ ] Alpaca-Adapter ist ausschließlich lesend, `paper=True`, keine Live-Schlüssel.
 - [ ] Beide wissen, wer welche Schnittstellen verantwortet; Stand direkt auf `main` synchronisiert.
 
-### 11.1 Aufgabenprüfung
+### 11.1 Aufgabenprüfung – Status, Checkbox und Nachweise
 
-Checkboxen dokumentieren den manuellen Projektstatus. Der CI-Workflow führt Unit-Tests aus. `scripts/validate_task.py` prüft ausgewählte Aufgaben lokal und schreibt einen JSON-Bericht nach `validation_reports/`; die Berichte und manuellen Abnahmeschritte ersetzen keine Checkbox-Abnahme.
+**Funktionsweise:** Jedes Arbeitspaket hat eine **manuell anklickbare Markdown-Checkbox** und einen Link **„▶ Prüfen“**. Der Link öffnet die GitHub-Actions-Seite eures Repositories. Dort `Run workflow` anklicken und die passende Aufgaben-ID (`A1` bis `B4`) wählen. GitHub Actions prüft nur den eingecheckten Stand auf `main`; nicht gespeicherte lokale Änderungen sind dort nicht sichtbar. Die automatische Prüfung schreibt ihren Status in den Workflow-Bericht und veröffentlicht einen JSON-Bericht als Artefakt.
+
+**Die Checkbox wird nicht automatisch gesetzt.** Nach bestandener Prüfung (und ggf. zusätzlicher manueller Abnahme) setzt ihr `[x]` selbst. Damit wird vermieden, dass ein grüner CI-Lauf fälschlich „fertig“ bedeutet.
+
+| Status | Bedeutung | Checkbox setzen? |
+|---|---|---|
+| `PASS` | Die automatisiert prüfbaren Kriterien des Tasks sind bestanden. | Nur wenn auch alle übrigen Abnahmekriterien erfüllt sind. |
+| `REVIEW` | Lokale Daten/Secrets, Fachprüfung oder weitere Tests erforderlich. | **Nein**, bis die genannten Punkte erledigt und dokumentiert sind. |
+| `FAIL` | Technischer Test fehlgeschlagen oder kritische Voraussetzung verletzt. | **Nein**. Fehler beheben und erneut prüfen. |
+
+**Direkt in VS Code / PowerShell (Projektordner):**
+
+```powershell
+# Einzelaufgabe auswählen: A1, A2, A3, A4, B1, B2, B3, B4
+.\.venv\Scripts\python.exe scripts/validate_task.py --task A1
+
+# Alle Sprint-1-Aufgaben offline prüfen (A1–B4)
+.\.venv\Scripts\python.exe scripts/validate_task.py --task ALL
+
+# Nur LOKAL mit Paper-Keys: lesende Brokerprüfung B2 bzw. B3
+.\.venv\Scripts\python.exe scripts/validate_task.py --task B2 --online
+.\.venv\Scripts\python.exe scripts/validate_task.py --task B3 --online
+```
+
+**Prüfmatrix – Umfang und Grenzen:**
+
+| Aufgabe | Automatische Prüfung | Zusätzliche Abnahme |
+|---|---|---|
+| A1 | Sechs lokale CSVs mit `csv_loader` validieren, mindestens 220 Tageskerzen | Feed, Vollständigkeit und Datenaktualität prüfen; in CI ohne CSV nur `REVIEW` |
+| A2 | Bridge- und Contract-Tests über pytest | Signalverhalten anhand bekannter V2-Daten stichprobenartig prüfen |
+| A3 | Ergebnisse und Trade-/Equity-Artefakte vorhanden, Datenschema plausibel | Backtest reproduzieren, Benchmark und Datengrundlagen dokumentieren; bis dahin `REVIEW` |
+| A4 | Daten-/Bridge-Tests bestehen | Zukunftsdaten-, Duplikat- und Fehlfalltests inhaltlich abdecken; bis dahin `REVIEW` |
+| B1 | `tests/test_risk.py` erfolgreich | RiskGuard-Grenzen und Fehlverhalten gegen Anforderungen abgleichen |
+| B2 | Read-only-Adapter statisch geprüft; lokal optional echte Paper-Leseabfrage | Ohne `--online` nur `REVIEW`; keine Broker-Secrets in CI hinterlegen |
+| B3 | Lokal Konto-, Positions- und offene Orderinfos lesen | Kaufkraft/Blockaden verifizieren; aktueller Reader liefert noch keine Buying Power: `REVIEW` |
+| B4 | `.gitignore`, `.env.example` und Offline-Tests geprüft | Git-Index/CI-Secrets und CI-Konfiguration zusätzlich kontrollieren; bis dahin `REVIEW` |
+| S2–S5 | Noch keine vollständigen automatischen Task-Abnahmetests vorhanden | Workflow meldet `REVIEW`, bis die jeweiligen Tests programmiert und bestanden wurden |
+
+**Nachweisdokumentation:** Ergebnis unter `validation_reports/<task>_latest.json` (in `.gitignore` ergänzen: `validation_reports/`), plus zugehörigen Git-Commit bzw. Actions-Run vermerken. Die Berichte enthalten keine API-Schlüssel. `--online` ist in GitHub Actions deaktiviert und darf nur mit den lokalen Paper-Zugangsdaten ausgeführt werden. Prüfungen senden **keine** Orders.
+
+**Wichtig:** GitHub-Checkboxen sind eine Statusanzeige, kein ausführbarer Button. Soll eine Aufgabe mit einem Klick ohne Aufgabenauswahl geprüft werden, ist dafür eine separate GitHub-App bzw. eine spätere Weboberfläche nötig; dies ist nicht Bestandteil dieses minimalen Sprint-1-Workflows.
 
 ### Sprint 2 – Datenpipeline, Backtest-Härtung und Risikopolitik
 
 **Person A – Data/Quant**
 
-- [ ] **S2A1** · Marktdatenadapter, einheitliche `MarketBar`-Transformation und Datenqualitätsprüfungen implementieren.
-- [ ] **S2A2** · Börsenkalender, Datenlücken, Splits/Dividenden und Aktualisierungsregeln nachweisbar behandeln.
-- [ ] **S2A3** · Backtest mit SPY-Benchmark, Out-of-Sample-Auswertung und reproduzierbarem Bericht vervollständigen.
+- [ ] **S2A1** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · Marktdatenadapter, einheitliche `MarketBar`-Transformation und Datenqualitätsprüfungen implementieren.
+- [ ] **S2A2** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · Börsenkalender, Datenlücken, Splits/Dividenden und Aktualisierungsregeln nachweisbar behandeln.
+- [ ] **S2A3** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · Backtest mit SPY-Benchmark, Out-of-Sample-Auswertung und reproduzierbarem Bericht vervollständigen.
 
 **Person B – Risk/Execution/Platform**
 
-- [ ] **S2B1** · RiskGuard um Exposure-, Tages-/Wochenverlustlimits, Kill Switch und Fail-Closed-Fälle erweitern.
-- [ ] **S2B2** · Risikoentscheidungen, Signale und Audit-Ereignisse revisionsfähig speichern (SQLite).
-- [ ] **S2B3** · Unit- und Integrationstests für Blockierungen und Grenzwerte ergänzen.
+- [ ] **S2B1** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · RiskGuard um Exposure-, Tages-/Wochenverlustlimits, Kill Switch und Fail-Closed-Fälle erweitern.
+- [ ] **S2B2** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · Risikoentscheidungen, Signale und Audit-Ereignisse revisionsfähig speichern (SQLite).
+- [ ] **S2B3** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · Unit- und Integrationstests für Blockierungen und Grenzwerte ergänzen.
 
 **Gemeinsame Abnahme:** Auf identischen Daten erzeugt die Strategie dieselben Signale; das Risikomodul gibt bei fehlenden/ungültigen Daten niemals einen Orderplan frei.
 
@@ -276,14 +476,14 @@ Checkboxen dokumentieren den manuellen Projektstatus. Der CI-Workflow führt Uni
 
 **Person A – Data/Quant**
 
-- [ ] **S3A1** · Nur abgeschlossene neue Kerzen verarbeiten, stabile eindeutige Signal-IDs vergeben.
-- [ ] **S3A2** · Backtest-Signalzeitpunkt und Live-Paper-Signalzeitpunkt vergleichen und dokumentieren.
+- [ ] **S3A1** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · Nur abgeschlossene neue Kerzen verarbeiten, stabile eindeutige Signal-IDs vergeben.
+- [ ] **S3A2** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · Backtest-Signalzeitpunkt und Live-Paper-Signalzeitpunkt vergleichen und dokumentieren.
 
 **Person B – Risk/Execution/Platform**
 
-- [ ] **S3B1** · Alpaca-Paper-Executor nach Risikofreigabe implementieren (`paper=True`, kein Live-Pfad).
-- [ ] **S3B2** · Client-Order-IDs, Timeout-Behandlung, Teilfills und doppelten Versand testen.
-- [ ] **S3B3** · Positionen, offene Orders, Wiederanlauf und Brokerabgleich implementieren.
+- [ ] **S3B1** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · Alpaca-Paper-Executor nach Risikofreigabe implementieren (`paper=True`, kein Live-Pfad).
+- [ ] **S3B2** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · Client-Order-IDs, Timeout-Behandlung, Teilfills und doppelten Versand testen.
+- [ ] **S3B3** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · Positionen, offene Orders, Wiederanlauf und Brokerabgleich implementieren.
 
 **Gemeinsame Abnahme:** Kein Order-Duplikat bei Zeitüberschreitung/Neustart; keine Order ohne Risk-Approval. Ausführung ausschließlich auf Paper.
 
@@ -291,61 +491,82 @@ Checkboxen dokumentieren den manuellen Projektstatus. Der CI-Workflow führt Uni
 
 **Person A – Data/Quant**
 
-- [ ] **S4A1** · Signale, Performance und Datenqualität im Dashboard darstellen.
-- [ ] **S4A2** · Strategie- und Backtest-/Paper-Abweichungen dokumentiert überwachen.
+- [ ] **S4A1** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · Signale, Performance und Datenqualität im Dashboard darstellen.
+- [ ] **S4A2** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · Strategie- und Backtest-/Paper-Abweichungen dokumentiert überwachen.
 
 **Person B – Risk/Execution/Platform**
 
-- [ ] **S4B1** · Eigenständigen Worker mit Börsenkalender, Single-Writer-Schutz und Scheduler betreiben.
-- [ ] **S4B2** · Monitoring, Fehlersperre, Alarmierung, Kill Switch und Recovery-Tests nachweisen.
+- [ ] **S4B1** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · Eigenständigen Worker mit Börsenkalender, Single-Writer-Schutz und Scheduler betreiben.
+- [ ] **S4B2** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · Monitoring, Fehlersperre, Alarmierung, Kill Switch und Recovery-Tests nachweisen.
 
 **Gemeinsame Abnahme:** Mehrwöchiger beobachteter Paper-Betrieb ohne kritische Order-/Datenfehler; UI bleibt ohne direkten Orderzugriff.
 
 ### Sprint 5 – Optionale Erweiterungen (nach MVP)
 
-- [ ] **S5A1** · Intraday-Daten und neue Strategien nur mit eigenständiger historischer Validierung einführen.
-- [ ] **S5B1** · Zusätzliche Broker/Marktdatenanbieter ausschließlich über Austauschadapter integrieren.
-- [ ] **S5AB1** · Bei Bedarf ML/KI und gemeinsames Hosting anhand dokumentierter Qualitäts-/Kostenkriterien prüfen.
+- [ ] **S5A1** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · Intraday-Daten und neue Strategien nur mit eigenständiger historischer Validierung einführen.
+- [ ] **S5B1** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · Zusätzliche Broker/Marktdatenanbieter ausschließlich über Austauschadapter integrieren.
+- [ ] **S5AB1** · [▶ Prüfen](../../actions/workflows/validate-task.yml) · Bei Bedarf ML/KI und gemeinsames Hosting anhand dokumentierter Qualitäts-/Kostenkriterien prüfen.
 
-**Status Sprint 2–5:** Dies sind geplante Arbeitspakete; aufgabenbezogene automatische Prüfungen sind noch nicht implementiert. Eine Stock3-Anbindung ist nicht erforderlich.
+**Wichtiger Validierungsstatus für Sprint 2–5:** Die Prüf-IDs sind bereits auswählbar. Solange die konkreten automatisierten Abnahmetests noch nicht implementiert sind, meldet der Workflow konsequent `REVIEW` statt eine erfolgreiche Validierung vorzutäuschen. Die automatische Prüfung wird im jeweiligen Sprint mit eigenen Tests ergänzt. Es gibt keine erforderliche Stock3-Anbindung.
 
-## 12. Startanweisungen
+## 12. Startanweisungen Sprint 1 (Windows / VS Code)
 
 ### 12.1 Voraussetzungen
 
-- Python 3.10 oder neuer.
-- Benötigte Bibliotheken mit `python -m pip install -r requirements.txt` installieren.
-- Zugangsdaten bei Bedarf lokal in `.env` ablegen; keine echten Schlüssel in `.env.example` eintragen.
-- CSV-Dateien liegen lokal direkt unter `data/` und werden nicht versioniert.
+- Projektordner `aktien-chatbot` geöffnet.
+- Python-Umgebung `.venv` eingerichtet, benötigte Bibliotheken installiert.
+- Sprint-1-Startpaket **einmalig** integriert (bestehende Dateien nicht blind überschreiben).
+- Lokale CSVs in `data/` vorhanden; API-Secrets nur lokal in `.env`.
 
 ### 12.2 Befehle
 
-```bash
-python -m pip install -r requirements.txt
-python -m unittest discover -s tests -v
-python -m scripts.market_data
-python -m scripts.check_market_data
-python -m scripts.validate_task --task A1
-streamlit run app.py
+```powershell
+# Vor der Arbeit
+ git status
+ git pull --ff-only origin main
+
+# Abhängigkeiten aktualisieren (falls nötig)
+ .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+
+# Offline-Tests
+ .\.venv\Scripts\python.exe -m pytest -q
+
+# Ohne Broker-Aufträge: Strategie -> Risiko -> Orderplan
+ .\.venv\Scripts\python.exe -m trading_bot.dry_run
+
+# NUR lesender Alpaca-Paper-Test (nur Person B, mit lokalen Paper-Keys)
+ .\.venv\Scripts\python.exe -m trading_bot.execution.alpaca_readonly
 ```
 
-**Sicherheitsregel:** `test_alpaca.py` kann nach Bestätigung eine Paper-Order absenden. Nicht als Teil automatisierter Tests oder CI ausführen.
+**macOS / VS Code (projektlokale `.venv`):**
+
+```bash
+./.venv/bin/python -m pytest -q
+./.venv/bin/python scripts/validate_task.py --task A1
+./.venv/bin/python scripts/validate_task.py --task A2
+./.venv/bin/python -m scripts.run_backtest
+```
+
+Nur tatsächlich vorhandene Dateien ausführen. `scripts/run_backtest.py` wurde lokal im Projektverlauf verwendet. Die ECO-Aufgaben besitzen noch keinen automatischen Validator.
+
+**Sicherheitsregel:** Die frühere Datei `test_alpaca.py` enthält eventuell einen echten `submit_order`-Aufruf für Paper-Trades. **Nicht** als Teil automatischer Testläufe oder CI ausführen.
 
 ### 12.3 Unmittelbarer nächster gemeinsamer Meilenstein
 
-CSV-Schema, Loader-Tests und A1-Prüfung sind implementiert. Als nächster fachlicher Schritt folgt A2; echte CSV-Datensätze bleiben lokal und werden nicht committed.
+Person A prüft **A3 (Backtest-Audit + SPY-Benchmark)** und danach die neuen ECO-A-Aufgaben; Person B parallel **B1 (RiskGuard-Tests)** und ECO-B1/B2. Beide führen `pytest` durch und pushen kleine, nachvollziehbare Commits direkt nach `main`.
 
-## 13. Geprüfter Implementierungsstand (13. November 2026)
+## 13. Statusübersicht (Projektmeldung vom 17.11.2026; nicht automatisch aktualisiert)
 
-| Bereich | Vorhanden | Offen |
+| Bestandteil | Aus Projektverlauf bekannt | Nächste Prüfung |
 |---|---|---|
-| Streamlit-Chatbot | `app.py` mit Yahoo-Finance-Daten und OpenAI-Analyse | Laufzeit-/API-Verhalten nicht in dieser Repo-Prüfung validiert |
-| Alpaca | Manueller Paper-Kauf-Test in `test_alpaca.py` | Kein isolierter Read-only-Adapter; nicht automatisiert ausführen |
-| CSV-Daten | Alpaca-IEX-Downloader, OHLCV-Loader und CSV-Prüfer; sechs lokale Datensätze | Feed-Abdeckung und historische Bereinigungen fachlich prüfen |
-| Trading-Bot-Code | Symbolprüfung und `trading_bot/data/csv_loader.py` | Modelle, Strategie, Risiko, Backtest und Runner fehlen |
-| Tests/CI | Symbol-, CSV- und Prüfer-Tests sowie `.github/workflows/tests.yml` | Tests für weitere Funktionen ergänzen |
-| Secrets | `.env.example`; lokale `*.env` werden ignoriert | Keine Secrets in Git oder CI hinterlegen |
-| Live-Trading | Nicht Teil des bestehenden Codes dieses Pakets | Nicht implementieren; MVP bleibt Paper-only |
+| VS Code/Python/Streamlit | Lokal funktionsfähig | `app.py` erneut starten |
+| Alpaca Paper | Verbindung und manuelle Paper-Testorder erfolgreich | Read-only-Adapter separat testen |
+| CSV-Tagesdaten inkl. SPY | Bereits erzeugt | Qualität/Datenschema bestätigen |
+| V2-Strategie (rekonstruiert) | Vorhanden, Bridge erzeugte fünf HOLD-Signale; Tests bestanden | Ursprünglicher Code fehlt; Methodik vergleichen |
+| Portfolio-Backtest V2 (rekonstruiert) | +2,737 % insgesamt, 50.000 USD, 31 Trades; 23 Tests + 9 Subtests laut lokalem Lauf | G0-Audit, Benchmark, 25.000-€-Szenario, ECO-Gates |
+| Sprint-1-Paket | ZIP mit neuen Dateien vorhanden | Lokal integrieren, Tests erneut ausführen |
+| Automatische Paper-Orders | **Nicht fertiggestellt** | Sprint 3 |
+| Produktionsbetrieb / Echtgeld | **Nicht freigegeben** | Nicht Teil des MVP |
 
 ## 14. Definition of Done – allgemeingültig
 
@@ -365,20 +586,21 @@ Eine Aufgabe gilt erst als abgeschlossen, wenn **(a)** die spezifizierte Funktio
 
 ## 16. Dokumentationspflege
 
-- `trading-system-architektur.md` beschreibt die fachliche Zielarchitektur und Modulverantwortlichkeiten.
-- `PROJECT_PLAN.md` enthält Anforderungen, Status und Sprintplanung.
-- `README.md` enthält Einstieg, Installation, Start und Testbefehle und verlinkt auf beide Dokumente.
+- `PROJECT_PLAN.md` ist die zentrale Projektübersicht.
+- Technische Details/Schnittstellen: `docs/INTERFACES.md`.
+- Konkrete Einrichtung: `docs/START_HIER.md`.
 - Entschiedene Architekturänderungen: Änderungstabelle unten ergänzen.
-- Aufgaben werden in diesem Markdown per Checkbox nachgehalten. `scripts/validate_task.py` bietet eine lokale Aufgabenprüfung; ihre Berichte werden nicht versioniert.
+- Aufgaben werden in diesem Markdown per Checkbox nachgehalten; über GitHub Actions oder lokal kann der technische Prüfbericht für Sprint-1-Aufgaben ausgelöst werden.
 - Bei Widerspruch zwischen Plan und ausführbarem Code **nicht** stillschweigend annehmen, dass der Plan bereits implementiert ist. Den Unterschied als offene Aufgabe erfassen.
 
 ### Änderungsprotokoll
 
 | Datum | Version | Änderung |
 |---|---|---|
+| 2026-11-17 | 1.2 | 25.000 € Planungskapital, Ziel 10–15 % CAGR, wirtschaftliche Mindesthürde 8 %, Risikobudget, Gates G0–G4, ECO-Aufgaben und aktualisierter A1–A3-Status; macOS-Befehle. |
 | 2026-11-11 | 1.1 | Sprint-1-Checkboxen mit Prüf-Links, validierbaren Aufgaben-IDs, Workflow und Berichtskonzept. |
 | 2026-11-11 | 1.0 | Gemeinsamer Masterplan: Swing-MVP/Alpaca-Paper, Stock3 optional, direkte Commits auf `main`, Architektur, Verträge, Aufgaben und Sprints dokumentiert. |
 
 ---
 
-**Nächste praktische Aktion:** Sprint-1-Aufgabe A2 angehen. Der CSV-Loader und die sechs lokalen Datensätze sind automatisiert prüfbar; Datenvollständigkeit und Backtest-Güte müssen weiterhin anhand der dokumentierten Feed- und Adjustierungsannahmen bewertet werden.
+**Nächste praktische Aktion (17.11.2026):** Wirtschaftliche Anforderungen aus Abschnitt 9.1–9.5 im Repository dokumentieren, dann G0/A3 (Risikoberechnung, Gap-/Datenvalidierung, SPY-Benchmark) fertigstellen. ECO-Prüflogik erst implementieren, dann automatische Prüf-Links setzen. Vor Push `git status`, `git diff --cached` und Offline-Tests prüfen. Direkte Commits auf `main`, keine Pull Requests nötig.
