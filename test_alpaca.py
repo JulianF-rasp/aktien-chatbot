@@ -1,11 +1,12 @@
 import argparse
 import os
-import re
 
 from dotenv import load_dotenv
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest
 from alpaca.trading.enums import OrderSide, TimeInForce
+
+from validation import is_valid_symbol
 
 parser = argparse.ArgumentParser(description="Sendet eine Paper-Kauforder für eine Aktie.")
 parser.add_argument(
@@ -18,7 +19,7 @@ args = parser.parse_args()
 load_dotenv()
 
 symbol = (args.symbol or input("Aktien-Ticker eingeben: ")).strip().upper()
-if not re.fullmatch(r"[A-Z][A-Z0-9.-]{0,14}", symbol):
+if not is_valid_symbol(symbol):
     parser.error("Ungültiger Ticker. Erlaubt sind Buchstaben, Zahlen, Punkte und Bindestriche.")
 
 api_key = os.getenv("ALPACA_API_KEY")
