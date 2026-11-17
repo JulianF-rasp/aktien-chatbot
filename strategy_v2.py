@@ -6,7 +6,6 @@ Keine Brokeranbindung, keine Orders.
 """
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
 
 REQUIRED = ("open", "high", "low", "close", "volume")
@@ -29,9 +28,9 @@ def _check_prices(prices: pd.DataFrame) -> pd.DataFrame:
         raise ValueError("Nicht-positive Kurswerte")
     if (df["volume"] < 0).any():
         raise ValueError("Negatives Volumen")
-    if (df["high"] < df[["open", "low", "close"]].max(axis=1)).any().any():
+    if (df["high"] < df[["open", "low", "close"]].max(axis=1)).any():
         raise ValueError("OHLC: high ist zu niedrig")
-    if (df["low"] > df[["open", "high", "close"]].min(axis=1)).any().any():
+    if (df["low"] > df[["open", "high", "close"]].min(axis=1)).any():
         raise ValueError("OHLC: low ist zu hoch")
     return df
 
