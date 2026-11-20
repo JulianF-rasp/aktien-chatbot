@@ -1,0 +1,1 @@
+"""Deterministischer, brokerfreier Portfolio-Backtest."""
